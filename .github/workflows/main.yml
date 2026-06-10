@@ -1,21 +1,44 @@
 name: Build Static ARMv7 Router
 on: [workflow_dispatch]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # fix warning Node.js 24
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Toolchain and Packages
+    - name: Install Toolchain and Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-arm-linux-gnueabi make
+        sudo apt-get install -y gcc-arm-linux-gnueabi make \
+          flex bison libssl-dev
+
+    - name: Compile Libpcap Statically
+      run: |
+        # ✅ URL lengkap ke repository libpcap
+        git clone --depth 1 https://github.com/the-tcpdump-group/libpcap.git
+        cd libpcap
+        export CC=arm-linux-gnueabi-gcc
+        # libpcap dari git butuh autogen.sh dulu
+        ./autogen.sh
+        ./configure --host=arm-linux-gnueabi --disable-shared --enable-static
+        make
+        echo "PCAP_PATH=$(pwd)" >> $GITHUB_ENV
 
     - name: Compile Reaver Pure Static
       run: |
+        # Pastikan berada di root repo, baru masuk ke src/
+        ./autogen.sh 2>/dev/null || true
         cd src
         export CC=arm-linux-gnueabi-gcc
-        ./configure --host=arm-linux-gnueabi LDFLAGS="-static" --disable-sqlite
+        ./configure \
+          --host=arm-linux-gnueabi \
+          LDFLAGS="-static -L${{ env.PCAP_PATH }}" \
+          CFLAGS="-I${{ env.PCAP_PATH }}" \
+          --disable-sqlite
         make
 
     - name: Save Artifact
