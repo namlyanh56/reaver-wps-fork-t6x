@@ -1,0 +1,20 @@
+name: Build Static ARMv7 Router
+on: [workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Compilers
+      run: sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabi make libpcap-dev libsqlite3-dev
+    - name: Compile Pure Static
+      run: |
+        cd src
+        export CC=arm-linux-gnueabi-gcc
+        ./configure --host=arm-linux-gnueabi LDFLAGS="-static"
+        make
+    - name: Save Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: reaver-wash-static-armv7
+        path: src/reaver
