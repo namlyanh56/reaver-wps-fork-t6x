@@ -6,25 +6,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Toolchain and Dependencies
+    - name: Install Toolchain and Packages
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-arm-linux-gnueabi make
-
-    - name: Compile Libpcap Statically
-      run: |
-        git clone --depth 1 https://github.com
-        cd libpcap
-        export CC=arm-linux-gnueabi-gcc
-        ./configure --host=arm-linux-gnueabi --disable-shared --enable-static
-        make
-        echo "PCAP_PATH=$(pwd)" >> $GITHUB_ENV
 
     - name: Compile Reaver Pure Static
       run: |
         cd src
         export CC=arm-linux-gnueabi-gcc
-        ./configure --host=arm-linux-gnueabi LDFLAGS="-static -L${{ env.PCAP_PATH }}" CFLAGS="-I${{ env.PCAP_PATH }}" --disable-sqlite
+        ./configure --host=arm-linux-gnueabi LDFLAGS="-static" --disable-sqlite
         make
 
     - name: Save Artifact
